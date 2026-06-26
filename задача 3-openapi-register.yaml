@@ -1,4 +1,4 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
   title: Book Store Registration API
   version: 1.0.0
@@ -37,7 +37,6 @@ paths:
                 firstName: ivan
                 lastName: ivanov
                 userName: ivan
-                createdAt: "2026-06-26T10:15:30Z"
                 message: User Register Successfully.
         "400":
           description: Клиентская ошибка. Невалидные данные или не пройдена reCAPTCHA.
@@ -54,7 +53,6 @@ paths:
                     fields:
                       - field: password
                         message: Passwords must have at least one non alphanumeric character, one digit ('0'-'9'), one uppercase ('A'-'Z'), one lowercase ('a'-'z'), one special character and Password must be eight characters or longer.
-                    timestamp: "2026-06-26T10:15:30Z"
                     path: /api/v1/users
                 recaptchaRequired:
                   summary: reCAPTCHA не пройдена
@@ -64,7 +62,6 @@ paths:
                     fields:
                       - field: recaptchaToken
                         message: reCAPTCHA verification is required
-                    timestamp: "2026-06-26T10:15:30Z"
                     path: /api/v1/users
         "409":
           description: Пользователь уже существует
@@ -75,8 +72,8 @@ paths:
               example:
                 code: USER_ALREADY_EXISTS
                 message: User exists!
-                timestamp: "2026-06-26T10:15:30Z"
                 path: /api/v1/users
+        # Расширенные крайние случаи: неверный Content-Type, лимит попыток и недоступность reCAPTCHA.
         "415":
           description: Неподдерживаемый Content-Type
           content:
@@ -86,7 +83,6 @@ paths:
               example:
                 code: UNSUPPORTED_MEDIA_TYPE
                 message: Content-Type must be application/json
-                timestamp: "2026-06-26T10:15:30Z"
                 path: /api/v1/users
         "429":
           description: Слишком много попыток регистрации
@@ -97,7 +93,6 @@ paths:
               example:
                 code: TOO_MANY_REQUESTS
                 message: Too many registration attempts. Try again later.
-                timestamp: "2026-06-26T10:15:30Z"
                 path: /api/v1/users
         "500":
           description: Серверная ошибка
@@ -108,7 +103,6 @@ paths:
               example:
                 code: INTERNAL_ERROR
                 message: Internal server error. Try again later.
-                timestamp: "2026-06-26T10:15:30Z"
                 path: /api/v1/users
                 traceId: f1a2b3c4d5e6
         "503":
@@ -120,7 +114,6 @@ paths:
               example:
                 code: RECAPTCHA_SERVICE_UNAVAILABLE
                 message: reCAPTCHA service is temporarily unavailable.
-                timestamp: "2026-06-26T10:15:30Z"
                 path: /api/v1/users
 
 components:
@@ -138,13 +131,15 @@ components:
           type: string
           minLength: 1
           maxLength: 50
-          description: Имя пользователя.
+          pattern: '^.*\S.*$'
+          description: Имя пользователя, не пустая строка после trim.
           example: ivan
         lastName:
           type: string
           minLength: 1
           maxLength: 50
-          description: Фамилия пользователя.
+          pattern: '^.*\S.*$'
+          description: Фамилия пользователя, не пустая строка после trim.
           example: ivanov
         userName:
           type: string
@@ -158,12 +153,14 @@ components:
           format: password
           minLength: 8
           maxLength: 128
-          description: Пароль пользователя. В БД хранится только хеш пароля.
+          pattern: "^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9]).+$"
+          description: Пароль пользователя. Должен содержать минимум одну цифру, одну заглавную букву, одну строчную букву и один специальный символ. В БД хранится только хеш пароля.
           example: Qwerty123!
         recaptchaToken:
           type: string
           minLength: 1
-          description: Токен reCAPTCHA, полученный фронтендом.
+          pattern: '^.*\S.*$'
+          description: Токен reCAPTCHA, полученный фронтендом; не пустая строка после trim.
           example: 03AFcWeA_example_recaptcha_token
 
     RegisterUserResponse:
@@ -173,7 +170,6 @@ components:
         - firstName
         - lastName
         - userName
-        - createdAt
         - message
       properties:
         id:
@@ -186,9 +182,6 @@ components:
           type: string
         userName:
           type: string
-        createdAt:
-          type: string
-          format: date-time
         message:
           type: string
           example: User Register Successfully.
@@ -211,7 +204,6 @@ components:
       required:
         - code
         - message
-        - timestamp
         - path
       properties:
         code:
@@ -224,11 +216,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FieldError"
-        timestamp:
-          type: string
-          format: date-time
         path:
           type: string
         traceId:
           type: string
           description: Идентификатор трассировки для поиска ошибки в логах.
+
+
+

@@ -1,0 +1,234 @@
+openapi: 3.0.3
+info:
+  title: Book Store Registration API
+  version: 1.0.0
+  description: REST API для регистрации пользователя по форме Register.
+
+servers:
+  - url: https://api.example.com
+
+paths:
+  /api/v1/users:
+    post:
+      summary: Register user
+      description: Создает нового пользователя после проверки полей, reCAPTCHA и уникальности userName.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserRequest"
+            example:
+              firstName: ivan
+              lastName: ivanov
+              userName: ivan
+              password: Qwerty123!
+              recaptchaToken: 03AFcWeA_example_recaptcha_token
+      responses:
+        "201":
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterUserResponse"
+              example:
+                id: 9b2f1c84-6a1e-4c3a-9b0a-7f2d4e5a1b22
+                firstName: ivan
+                lastName: ivanov
+                userName: ivan
+                createdAt: "2026-06-26T10:15:30Z"
+                message: User Register Successfully.
+        "400":
+          description: Клиентская ошибка. Невалидные данные или не пройдена reCAPTCHA.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                weakPassword:
+                  summary: Слабый пароль
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Validation error
+                    fields:
+                      - field: password
+                        message: Passwords must have at least one non alphanumeric character, one digit ('0'-'9'), one uppercase ('A'-'Z'), one lowercase ('a'-'z'), one special character and Password must be eight characters or longer.
+                    timestamp: "2026-06-26T10:15:30Z"
+                    path: /api/v1/users
+                recaptchaRequired:
+                  summary: reCAPTCHA не пройдена
+                  value:
+                    code: RECAPTCHA_REQUIRED
+                    message: Please verify reCaptcha to register!
+                    fields:
+                      - field: recaptchaToken
+                        message: reCAPTCHA verification is required
+                    timestamp: "2026-06-26T10:15:30Z"
+                    path: /api/v1/users
+        "409":
+          description: Пользователь уже существует
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: USER_ALREADY_EXISTS
+                message: User exists!
+                timestamp: "2026-06-26T10:15:30Z"
+                path: /api/v1/users
+        "415":
+          description: Неподдерживаемый Content-Type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: UNSUPPORTED_MEDIA_TYPE
+                message: Content-Type must be application/json
+                timestamp: "2026-06-26T10:15:30Z"
+                path: /api/v1/users
+        "429":
+          description: Слишком много попыток регистрации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: TOO_MANY_REQUESTS
+                message: Too many registration attempts. Try again later.
+                timestamp: "2026-06-26T10:15:30Z"
+                path: /api/v1/users
+        "500":
+          description: Серверная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: INTERNAL_ERROR
+                message: Internal server error. Try again later.
+                timestamp: "2026-06-26T10:15:30Z"
+                path: /api/v1/users
+                traceId: f1a2b3c4d5e6
+        "503":
+          description: Сервис reCAPTCHA временно недоступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: RECAPTCHA_SERVICE_UNAVAILABLE
+                message: reCAPTCHA service is temporarily unavailable.
+                timestamp: "2026-06-26T10:15:30Z"
+                path: /api/v1/users
+
+components:
+  schemas:
+    RegisterUserRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - userName
+        - password
+        - recaptchaToken
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Имя пользователя.
+          example: ivan
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Фамилия пользователя.
+          example: ivanov
+        userName:
+          type: string
+          minLength: 3
+          maxLength: 30
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Уникальное имя пользователя.
+          example: ivan
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          description: Пароль пользователя. В БД хранится только хеш пароля.
+          example: Qwerty123!
+        recaptchaToken:
+          type: string
+          minLength: 1
+          description: Токен reCAPTCHA, полученный фронтендом.
+          example: 03AFcWeA_example_recaptcha_token
+
+    RegisterUserResponse:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - userName
+        - createdAt
+        - message
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор созданного пользователя.
+        firstName:
+          type: string
+        lastName:
+          type: string
+        userName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+          example: User Register Successfully.
+
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          description: Название поля, где найдена ошибка.
+        message:
+          type: string
+          description: Сообщение об ошибке для поля.
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+        - path
+      properties:
+        code:
+          type: string
+          description: Машиночитаемый код ошибки.
+        message:
+          type: string
+          description: Человекочитаемое сообщение.
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+        traceId:
+          type: string
+          description: Идентификатор трассировки для поиска ошибки в логах.
